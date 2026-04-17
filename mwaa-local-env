@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_FILE="$ROOT_DIR/docker/docker-compose-local.yml"
+RESET_FILE="$ROOT_DIR/docker/docker-compose-resetdb.yml"
+ENV_FILE="$ROOT_DIR/.env"
+
+display_help() {
+  cat <<'EOF'
+MWAA-like local runner
+
+Commands:
+  help                 Show this help
+  init-env             Create .env from .env.example if missing
+  validate-prereqs     Validate docker, docker compose, python3, and pip3
+  build-image          Build the local Airflow image
+  start                Start the local Airflow stack
+  stop                 Stop the local Airflow stack
+  reset-db             Reset the metadata database
+  test-requirements    Validate requirements installation in an ephemeral run
+  test-startup-script  Execute the startup script in an ephemeral run
+  open-shell           Open a shell in the airflow container image
+EOF
+}
+
+require_command() {
+  local command_name="$1"
+  if command -v "$command_name" >/dev/null 2>&1; then
+    printf '%s\n' "$command_name: ok"
+  else
+    printf '%s\n' "$command_name: missing"
+    return 1
+  fi
+}
+
+ensure_env() {
+  if [[ ! -f "$ENV_FILE" ]]; then
+    cp "$ROOT_DIR/.env.example" "$ENV_FILE"
+    printf '%s\n' "Created $ENV_FILE from .env.example"
+  fi
+}
+
+compose() {
+  ensure_env
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
+reset_compose() {
+  ensure_env
+  docker compose --env-file "$ENV_FILE" -f "$RESET_FILE" "$@"
+}
+
+case "${1:-help}" in
+  help)
+    display_help
+    ;;
+  init-env)
+    ensure_env
+    ;;
+  validate-prereqs)
+    require_command docker
+    docker compose version >/dev/null 2>&1 && printf '%s\n' 'docker compose: ok' || { printf '%s\n' 'docker compose: missing'; exit 1; }
+    require_command python3
+    require_command pip3
+    ;;
+  build-image)
+    compose build airflow
+    ;;
+  start)
+    compose up --build
+    ;;
+  stop)
+    compose down --remove-orphans
+    ;;
+  reset-db)
+    reset_compose up --abort-on-container-exit --exit-code-from airflow-reset
+    ;;
+  test-requirements)
+    compose run --rm airflow requirements-check
+    ;;
+  test-startup-script)
+    compose run --rm airflow startup-check
+    ;;
+  open-shell)
+    compose run --rm airflow bash
+    ;;
+  *)
+    display_help
+    exit 1
+    ;;
+esac

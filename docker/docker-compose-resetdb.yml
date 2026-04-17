@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: public.ecr.aws/docker/library/postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - ../db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow-reset:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        AIRFLOW_VERSION: ${AIRFLOW_VERSION:-2.10.3}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./config/.env.localrunner
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW_EXECUTOR:-LocalExecutor}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW_LOAD_EXAMPLES:-False}
+    volumes:
+      - ../dags:/opt/airflow/dags
+      - ../plugins:/opt/airflow/plugins
+      - ../requirements:/opt/airflow/requirements
+      - ../startup_script:/opt/airflow/startup_script
+      - ../logs:/opt/airflow/logs
+    command: reset-db

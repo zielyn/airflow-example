@@ -1,0 +1,19 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+
+# Airflow runtime artifacts
+airflow.db
+logs/*
+!logs/.gitkeep
+db-data/
+
+# IDE and local tooling
+.vscode/
