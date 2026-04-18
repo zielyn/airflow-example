@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 
 
 @dag(
@@ -23,9 +23,17 @@ def example_mwaa_local():
     @task
     def print_context(payload: dict[str, str]) -> None:
         for key, value in payload.items():
-            print(f"{key}={value}")
+            print(f"lol: {key}={value}")
+            
+        print(f'Well this should be doing a new version of the task. How to figure this out.')
+
+    @task
+    def trying_a_new_task(payload: dict[str, str]) -> None:
+        print(f'Will this create a new version? who knows.')
 
     print_context(emit_context())
+
+    trying_a_new_task(emit_context())
 
 
 example_mwaa_local()

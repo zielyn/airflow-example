@@ -1,7 +1,7 @@
-FROM public.ecr.aws/docker/library/python:3.11-slim-bookworm
+FROM public.ecr.aws/docker/library/python:3.12-slim-bookworm
 
-ARG AIRFLOW_VERSION=2.10.3
-ARG AIRFLOW_CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.11.txt"
+ARG AIRFLOW_VERSION=3.0.6
+ARG AIRFLOW_CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.12.txt"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV AIRFLOW_HOME=/opt/airflow
@@ -37,4 +37,4 @@ RUN chmod +x /entrypoint.sh && chown airflow:airflow /entrypoint.sh
 USER airflow
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["webserver"]
+CMD ["api-server"]

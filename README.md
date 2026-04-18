@@ -77,7 +77,7 @@ Put DAG code in `dags/`. The included example DAG verifies the stack is healthy 
 
 ### Plugins
 
-Put custom plugin code in `plugins/`. The example plugin registers a lightweight Flask AppBuilder view to prove plugin loading works.
+Put custom plugin code in `plugins/`. The included example plugin is intentionally minimal so it loads cleanly on Airflow 3.
 
 ### Python dependencies
 
@@ -107,6 +107,8 @@ The devcontainer gives you Python tooling plus access to the host Docker daemon,
 
 Open the command palette and run `Dev Containers: Reopen in Container` after Docker Desktop and WSL integration are working.
 
+When you start the Airflow stack from WSL or the devcontainer, Docker Desktop publishes the Airflow UI to your Windows host on `http://localhost:8080` by default.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and override values as needed.
@@ -115,6 +117,7 @@ Key settings:
 
 - `AIRFLOW_VERSION`: Airflow version installed in the local image
 - `AIRFLOW_EXECUTOR`: defaults to `LocalExecutor`
+- `AIRFLOW_API_PORT`: published port for the Airflow API/UI (defaults to `8080`)
 - `AIRFLOW_ADMIN_USERNAME` and `AIRFLOW_ADMIN_PASSWORD`: local login credentials
 - `AWS_*`: optional credentials for local AWS operator testing
 

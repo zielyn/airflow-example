@@ -45,22 +45,32 @@ PY
 
 bootstrap_airflow() {
   airflow db migrate
-  airflow users create \
-    --role Admin \
-    --username "${AIRFLOW_ADMIN_USERNAME:-admin}" \
-    --password "${AIRFLOW_ADMIN_PASSWORD:-test}" \
-    --firstname Local \
-    --lastname Admin \
-    --email "${AIRFLOW_ADMIN_EMAIL:-admin@example.com}" || true
 }
 
 start_local_stack() {
+  local pids=()
+
+  # Start each required Airflow service in the background and track child PIDs.
   airflow scheduler > "$AIRFLOW_HOME/logs/scheduler.log" 2>&1 &
-  exec airflow webserver
+  pids+=("$!")
+
+  airflow triggerer > "$AIRFLOW_HOME/logs/triggerer.log" 2>&1 &
+  pids+=("$!")
+
+  airflow dag-processor > "$AIRFLOW_HOME/logs/dag_processor.log" 2>&1 &
+  pids+=("$!")
+
+  airflow api-server > "$AIRFLOW_HOME/logs/api_server.log" 2>&1 &
+  pids+=("$!")
+
+  trap 'kill "${pids[@]}" 2>/dev/null || true' TERM INT
+
+  # Exit if any child process exits unexpectedly.
+  wait -n "${pids[@]}"
 }
 
-case "${1:-webserver}" in
-  webserver)
+case "${1:-api-server}" in
+  api-server)
     wait_for_db
     run_startup_script
     install_requirements

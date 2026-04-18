@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: public.ecr.aws/docker/library/postgres:16
+    image: public.ecr.aws/docker/library/postgres:17
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
@@ -18,7 +18,7 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       args:
-        AIRFLOW_VERSION: ${AIRFLOW_VERSION:-2.10.3}
+        AIRFLOW_VERSION: ${AIRFLOW_VERSION:-3.0.6}
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,9 +27,14 @@ services:
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       AIRFLOW__CORE__EXECUTOR: ${AIRFLOW_EXECUTOR:-LocalExecutor}
+      AIRFLOW__CORE__AUTH_MANAGER: airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: ${AIRFLOW_ADMIN_USERNAME:-admin}:${AIRFLOW_ADMIN_PASSWORD:-test}
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
       AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW_LOAD_EXAMPLES:-False}
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
-      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "False"
+      AIRFLOW__API__HOST: 0.0.0.0
+      AIRFLOW__API__PORT: "8080"
+      AIRFLOW__API__EXPOSE_CONFIG: "True"
       AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
       AIRFLOW_ADMIN_USERNAME: ${AIRFLOW_ADMIN_USERNAME:-admin}
       AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-test}
@@ -40,11 +45,12 @@ services:
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
     ports:
-      - "${AIRFLOW_WEBSERVER_PORT:-8080}:8080"
+      - "${AIRFLOW_API_PORT:-8080}:8080"
     volumes:
+      - ./script/entrypoint.sh:/entrypoint.sh:ro
       - ../dags:/opt/airflow/dags
       - ../plugins:/opt/airflow/plugins
       - ../requirements:/opt/airflow/requirements
       - ../startup_script:/opt/airflow/startup_script
       - ../logs:/opt/airflow/logs
-    command: webserver
+    command: api-server
