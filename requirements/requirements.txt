@@ -1,3 +1,2 @@
 # Add extra Python packages for your DAGs and plugins here.
-# Keep package versions compatible with Airflow 2.10.3.
 boto3>=1.35,<2.0

@@ -4,12 +4,14 @@ from datetime import datetime
 
 from airflow.sdk import dag, task
 
+from teams.dba.modules.random_string import shuffle_string
+
 @dag(
     dag_id="new_dag_its_ame",
     start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
-    tags=["example", "new_dag_its_ame"],
+    tags=["dba", "weekly"],
 )
 def new_dag_its_ame():
     @task
@@ -35,9 +37,17 @@ def new_dag_its_ame():
         print("Final task received paragraph:")
         print(paragraph)
 
+    @task
+    def shuffle_paragraph(paragraph: str) -> str:
+        shuffled = shuffle_string(paragraph)
+        print(f"Shuffled paragraph: {shuffled}")
+
+
     # Dependencies and Running the DAG
     dynamic_lines = make_dynamic_line.expand(sentence=build_sentences())
     paragraph = combine_into_paragraph(dynamic_lines)
     use_paragraph(paragraph)
+    shuffle_paragraph(paragraph)
+    
 
 new_dag_its_ame()
