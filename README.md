@@ -30,6 +30,14 @@ cp .env.example .env
 docker compose --env-file .env -f docker/docker-compose-local.yml up -d
 ```
 
+Windows PowerShell equivalent:
+
+```powershell
+Copy-Item .env.example .env -ErrorAction SilentlyContinue
+.\build-mwaa-image-windows.ps1
+docker compose --env-file .env -f docker/docker-compose-local.yml up -d
+```
+
 The local stack now runs on the MWAA image built from the vendored subtree source at `st/amazon-mwaa-docker-images`.
 
 Airflow UI:
@@ -45,6 +53,7 @@ Airflow UI:
 ./mwaa-local-env validate-prereqs
 ./mwaa-local-env build-image
 ./build-mwaa-image-wsl.sh
+.\build-mwaa-image-windows.ps1
 ./mwaa-local-env start
 ./mwaa-local-env stop
 ./mwaa-local-env reset-db

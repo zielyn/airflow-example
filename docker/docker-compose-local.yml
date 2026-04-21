@@ -5,16 +5,16 @@ x-airflow-common: &airflow-common
   env_file:
     - ./config/.env.localrunner
   environment:
-    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-    AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-FAKE_AWS_ACCESS_KEY_ID}
+    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-FAKE_AWS_SECRET_ACCESS_KEY}
+    AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-FAKE_AWS_SESSION_TOKEN}
     AWS_REGION: ${AWS_DEFAULT_REGION:-us-west-2}
     AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-west-2}
     MWAA__CORE__AUTH_TYPE: ${MWAA_CORE_AUTH_TYPE:-testing}
     MWAA__CORE__REQUIREMENTS_PATH: /usr/local/airflow/requirements/requirements.txt
     MWAA__CORE__STARTUP_SCRIPT_PATH: /usr/local/airflow/startup/startup.sh
-    MWAA__CORE__CUSTOM_AIRFLOW_CONFIGS: ${MWAA_CORE_CUSTOM_AIRFLOW_CONFIGS:-{}}
-    MWAA__CORE__FERNET_KEY: ${MWAA__CORE__FERNET_KEY:-J9ZFJgk7H5D8Jx2x8xHTAybM2nK1_97I5fSu-BQmNfM=}
+    MWAA__CORE__CUSTOM_AIRFLOW_CONFIGS: "{}"
+    MWAA__CORE__FERNET_KEY: ${MWAA__CORE__FERNET_KEY:-{"FernetKey":"nNge+lks3RBeGVrnZ1Dq5GjKerbZKmb7dXNnsNsGy3E="}}
     MWAA__WEBSERVER__SECRET: ${MWAA__WEBSERVER__SECRET:-{"secret_key":"local-mwaa-webserver-secret"}}
     MWAA__CORE__KMS_KEY_ARN: ${MWAA__CORE__KMS_KEY_ARN:-}
     MWAA__DB__CREDENTIALS: '{"username": "airflow", "password": "airflow"}'
@@ -40,13 +40,13 @@ x-airflow-common: &airflow-common
 
 services:
   postgres:
-    image: public.ecr.aws/docker/library/postgres:17
+    image: public.ecr.aws/docker/library/postgres:13
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
     volumes:
-      - ../db-data:/var/lib/postgresql/data
+      - ../db-data-pg13:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
       interval: 10s

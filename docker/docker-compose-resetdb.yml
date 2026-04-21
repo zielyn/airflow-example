@@ -4,12 +4,13 @@ x-airflow-common: &airflow-common
   env_file:
     - ./config/.env.localrunner
   environment:
-    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-    AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-FAKE_AWS_ACCESS_KEY_ID}
+    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-FAKE_AWS_SECRET_ACCESS_KEY}
+    AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-FAKE_AWS_SESSION_TOKEN}
     AWS_REGION: ${AWS_DEFAULT_REGION:-us-west-2}
     AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-west-2}
     MWAA__CORE__REQUIREMENTS_PATH: /usr/local/airflow/requirements/requirements.txt
+    MWAA__CORE__FERNET_KEY: ${MWAA__CORE__FERNET_KEY:-{"FernetKey":"nNge+lks3RBeGVrnZ1Dq5GjKerbZKmb7dXNnsNsGy3E="}}
     MWAA__DB__CREDENTIALS: '{"username": "airflow", "password": "airflow"}'
     MWAA__DB__POSTGRES_DB: airflow
     MWAA__DB__POSTGRES_HOST: postgres
@@ -32,13 +33,13 @@ x-airflow-common: &airflow-common
 
 services:
   postgres:
-    image: public.ecr.aws/docker/library/postgres:17
+    image: public.ecr.aws/docker/library/postgres:13
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
     volumes:
-      - ../db-data:/var/lib/postgresql/data
+      - ../db-data-pg13:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
       interval: 10s
