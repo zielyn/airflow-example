@@ -121,6 +121,56 @@ Key settings:
 - `AIRFLOW_ADMIN_USERNAME` and `AIRFLOW_ADMIN_PASSWORD`: local login credentials
 - `AWS_*`: optional credentials for local AWS operator testing
 
+## Subtree maintenance
+
+This repository vendors `aws/amazon-mwaa-docker-images` as a git subtree at `st/amazon-mwaa-docker-images`.
+
+### Current subtree path
+
+- `st/amazon-mwaa-docker-images`
+
+### Update subtree from upstream
+
+Run from the repository root:
+
+```bash
+git subtree pull --prefix=st/amazon-mwaa-docker-images https://github.com/aws/amazon-mwaa-docker-images.git main
+```
+
+This fetches upstream `main` and merges new changes into the subtree path.
+
+### Recreate subtree (only if needed)
+
+If the subtree was removed or needs to be re-added:
+
+```bash
+git subtree add --prefix=st/amazon-mwaa-docker-images https://github.com/aws/amazon-mwaa-docker-images.git main
+```
+
+### Inspect subtree provenance
+
+```bash
+git log --oneline --decorate -- st/amazon-mwaa-docker-images
+git show --stat --oneline HEAD
+```
+
+Look for commit messages like:
+
+- `Add 'st/amazon-mwaa-docker-images/' from commit '<sha>'`
+- `Split 'st/amazon-mwaa-docker-images/' into commit '<sha>'`
+
+### Optional: track a named remote
+
+Using a named remote can make pull commands shorter:
+
+```bash
+git remote add mwaa-upstream https://github.com/aws/amazon-mwaa-docker-images.git
+git fetch mwaa-upstream
+git subtree pull --prefix=st/amazon-mwaa-docker-images mwaa-upstream main
+```
+
+If the remote already exists, skip the add step.
+
 ## Troubleshooting
 
 ### The stack fails to start
