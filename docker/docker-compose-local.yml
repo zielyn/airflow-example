@@ -1,3 +1,43 @@
+x-airflow-common: &airflow-common
+  image: ${MWAA_IMAGE_REPOSITORY:-amazon-mwaa-docker-images/airflow}:${MWAA_IMAGE_TAG:-3.0.6-dev}
+  restart: always
+  init: true
+  env_file:
+    - ./config/.env.localrunner
+  environment:
+    AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+    AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+    AWS_REGION: ${AWS_DEFAULT_REGION:-us-west-2}
+    AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-west-2}
+    MWAA__CORE__AUTH_TYPE: ${MWAA_CORE_AUTH_TYPE:-testing}
+    MWAA__CORE__REQUIREMENTS_PATH: /usr/local/airflow/requirements/requirements.txt
+    MWAA__CORE__STARTUP_SCRIPT_PATH: /usr/local/airflow/startup/startup.sh
+    MWAA__CORE__CUSTOM_AIRFLOW_CONFIGS: ${MWAA_CORE_CUSTOM_AIRFLOW_CONFIGS:-{}}
+    MWAA__CORE__FERNET_KEY: ${MWAA__CORE__FERNET_KEY:-J9ZFJgk7H5D8Jx2x8xHTAybM2nK1_97I5fSu-BQmNfM=}
+    MWAA__WEBSERVER__SECRET: ${MWAA__WEBSERVER__SECRET:-{"secret_key":"local-mwaa-webserver-secret"}}
+    MWAA__CORE__KMS_KEY_ARN: ${MWAA__CORE__KMS_KEY_ARN:-}
+    MWAA__DB__CREDENTIALS: '{"username": "airflow", "password": "airflow"}'
+    MWAA__DB__POSTGRES_DB: airflow
+    MWAA__DB__POSTGRES_HOST: postgres
+    MWAA__DB__POSTGRES_PORT: "5432"
+    MWAA__DB__POSTGRES_SSLMODE: prefer
+    MWAA__SQS__CREATE_QUEUE: "True"
+    MWAA__SQS__CUSTOM_ENDPOINT: http://sqs:9324
+    MWAA__SQS__QUEUE_URL: http://sqs:9324/000000000000/celery-queue
+    MWAA__SQS__USE_SSL: "False"
+  volumes:
+    - ../dags:/usr/local/airflow/dags
+    - ../plugins:/usr/local/airflow/plugins
+    - ../requirements:/usr/local/airflow/requirements
+    - ../startup_script:/usr/local/airflow/startup
+    - ../logs:/usr/local/airflow/logs
+  depends_on: &airflow-common-depends-on
+    postgres:
+      condition: service_healthy
+    sqs:
+      condition: service_healthy
+
 services:
   postgres:
     image: public.ecr.aws/docker/library/postgres:17
@@ -13,44 +53,40 @@ services:
       timeout: 5s
       retries: 5
 
-  airflow:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        AIRFLOW_VERSION: ${AIRFLOW_VERSION:-3.0.6}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file:
-      - ./config/.env.localrunner
-    environment:
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
-      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW_EXECUTOR:-LocalExecutor}
-      AIRFLOW__CORE__AUTH_MANAGER: airflow.api_fastapi.auth.managers.simple.simple_auth_manager.SimpleAuthManager
-      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: ${AIRFLOW_ADMIN_USERNAME:-admin}:${AIRFLOW_ADMIN_PASSWORD:-test}
-      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
-      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW_LOAD_EXAMPLES:-False}
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
-      AIRFLOW__API__HOST: 0.0.0.0
-      AIRFLOW__API__PORT: "8080"
-      AIRFLOW__API__EXPOSE_CONFIG: "True"
-      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
-      AIRFLOW_ADMIN_USERNAME: ${AIRFLOW_ADMIN_USERNAME:-admin}
-      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-test}
-      AIRFLOW_ADMIN_EMAIL: ${AIRFLOW_ADMIN_EMAIL:-admin@example.com}
-      AIRFLOW_FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
-      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-us-east-1}
+  sqs:
+    image: softwaremill/elasticmq:latest
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -S -O - 127.0.0.1:9324/?Action=ListQueues"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "9324:9324"
+
+  migratedb:
+    <<: *airflow-common
+    command: migrate-db
+    restart: "no"
+
+  webserver:
+    <<: *airflow-common
+    command: webserver
     ports:
       - "${AIRFLOW_API_PORT:-8080}:8080"
-    volumes:
-      - ./script/entrypoint.sh:/entrypoint.sh:ro
-      - ../dags:/opt/airflow/dags
-      - ../plugins:/opt/airflow/plugins
-      - ../requirements:/opt/airflow/requirements
-      - ../startup_script:/opt/airflow/startup_script
-      - ../logs:/opt/airflow/logs
-    command: api-server
+    depends_on:
+      migratedb:
+        condition: service_completed_successfully
+
+  scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      migratedb:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *airflow-common
+    command: worker
+    depends_on:
+      migratedb:
+        condition: service_completed_successfully

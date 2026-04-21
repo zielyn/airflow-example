@@ -26,9 +26,11 @@ This workspace is designed for local development. It does not attempt to exactly
 ```bash
 cp .env.example .env
 ./mwaa-local-env validate-prereqs
-./mwaa-local-env build-image
-./mwaa-local-env start
+./build-mwaa-image-wsl.sh
+docker compose --env-file .env -f docker/docker-compose-local.yml up -d
 ```
+
+The local stack now runs on the MWAA image built from the vendored subtree source at `st/amazon-mwaa-docker-images`.
 
 Airflow UI:
 
@@ -42,12 +44,19 @@ Airflow UI:
 ./mwaa-local-env init-env
 ./mwaa-local-env validate-prereqs
 ./mwaa-local-env build-image
+./build-mwaa-image-wsl.sh
 ./mwaa-local-env start
 ./mwaa-local-env stop
 ./mwaa-local-env reset-db
 ./mwaa-local-env test-requirements
 ./mwaa-local-env test-startup-script
 ./mwaa-local-env open-shell
+```
+
+Direct startup without helper script:
+
+```bash
+docker compose --env-file .env -f docker/docker-compose-local.yml up -d
 ```
 
 ## Workspace layout
@@ -68,6 +77,16 @@ Airflow UI:
 |-- startup_script/
 `-- mwaa-local-env
 ```
+
+### MWAA runtime mapping
+
+Root folders remain the source of truth and are mounted into MWAA container paths:
+
+- `dags` -> `/usr/local/airflow/dags`
+- `plugins` -> `/usr/local/airflow/plugins`
+- `requirements` -> `/usr/local/airflow/requirements`
+- `startup_script` -> `/usr/local/airflow/startup`
+- `logs` -> `/usr/local/airflow/logs`
 
 ## Working with MWAA assets
 

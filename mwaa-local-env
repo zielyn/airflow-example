@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker/docker-compose-local.yml"
 RESET_FILE="$ROOT_DIR/docker/docker-compose-resetdb.yml"
+TEST_FILE="$ROOT_DIR/docker/docker-compose-test.yml"
 ENV_FILE="$ROOT_DIR/.env"
 
 display_help() {
@@ -15,7 +16,7 @@ Commands:
   help                 Show this help
   init-env             Create .env from .env.example if missing
   validate-prereqs     Validate docker, docker compose, python3, and pip3
-  build-image          Build the local Airflow image
+  build-image          Build the local MWAA Airflow image from subtree sources
   start                Start the local Airflow stack
   stop                 Stop the local Airflow stack
   reset-db             Reset the metadata database
@@ -52,6 +53,37 @@ reset_compose() {
   docker compose --env-file "$ENV_FILE" -f "$RESET_FILE" "$@"
 }
 
+test_compose() {
+  ensure_env
+  docker compose --env-file "$ENV_FILE" -f "$TEST_FILE" "$@"
+}
+
+build_mwaa_image() {
+  ensure_env
+
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+
+  local airflow_version="${AIRFLOW_VERSION:-3.0.6}"
+  local image_dir="$ROOT_DIR/st/amazon-mwaa-docker-images/images/airflow/${airflow_version}"
+  local repo="${MWAA_IMAGE_REPOSITORY:-amazon-mwaa-docker-images/airflow}"
+
+  if [[ ! -d "$image_dir" ]]; then
+    printf '%s\n' "Unsupported or missing MWAA version directory: $image_dir"
+    return 1
+  fi
+
+  docker build \
+    -f "$image_dir/Dockerfiles/Dockerfile.base" \
+    -t "$repo:${airflow_version}-base" \
+    "$image_dir"
+
+  docker build \
+    -f "$image_dir/Dockerfiles/Dockerfile-dev" \
+    -t "$repo:${airflow_version}-dev" \
+    "$image_dir"
+}
+
 case "${1:-help}" in
   help)
     display_help
@@ -62,29 +94,27 @@ case "${1:-help}" in
   validate-prereqs)
     require_command docker
     docker compose version >/dev/null 2>&1 && printf '%s\n' 'docker compose: ok' || { printf '%s\n' 'docker compose: missing'; exit 1; }
-    require_command python3
-    require_command pip3
     ;;
   build-image)
-    compose build airflow
+    build_mwaa_image
     ;;
   start)
-    compose up --build
+    compose up -d
     ;;
   stop)
     compose down --remove-orphans
     ;;
   reset-db)
-    reset_compose up --abort-on-container-exit --exit-code-from airflow-reset
+    reset_compose up --abort-on-container-exit --exit-code-from resetdb resetdb
     ;;
   test-requirements)
-    compose run --rm airflow requirements-check
+    test_compose up --abort-on-container-exit --exit-code-from test-requirements test-requirements
     ;;
   test-startup-script)
-    compose run --rm airflow startup-check
+    test_compose up --abort-on-container-exit --exit-code-from test-startup-script test-startup-script
     ;;
   open-shell)
-    compose run --rm airflow bash
+    compose run --rm webserver shell
     ;;
   *)
     display_help
