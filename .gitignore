@@ -14,6 +14,7 @@ airflow.db
 logs/*
 !logs/.gitkeep
 db-data/
+db-data-pg13/
 
 # IDE and local tooling
 .vscode/
