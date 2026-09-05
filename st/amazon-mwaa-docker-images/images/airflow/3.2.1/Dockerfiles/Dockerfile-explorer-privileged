@@ -1,0 +1,25 @@
+<<<<<<< HEAD:st/amazon-mwaa-docker-images/images/airflow/3.2.0/Dockerfiles/Dockerfile-explorer-privileged
+#
+# WARNING: Don't change this file manually. This file is auto-generated from
+# the Jinja2-templated Dockerfile.j2 file, so you need to change that file
+# instead.
+#
+
+FROM amazon-mwaa-docker-images/airflow:3.2.0-base
+
+USER root
+
+ENTRYPOINT ["/bin/bash"]
+=======
+#
+# WARNING: Don't change this file manually. This file is auto-generated from
+# the Jinja2-templated Dockerfile.j2 file, so you need to change that file
+# instead.
+#
+
+FROM localhost/amazon-mwaa-docker-images/airflow:3.2.1-base
+
+USER root
+
+ENTRYPOINT ["/bin/bash"]
+>>>>>>> 72a97b2967a22ec1bd207f3e68db75e52ab1848f:st/amazon-mwaa-docker-images/images/airflow/3.2.1/Dockerfiles/Dockerfile-explorer-privileged
