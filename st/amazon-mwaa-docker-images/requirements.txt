@@ -1,0 +1,21 @@
+# This requirements.txt file is intended for the repository's scripts and
+# quality checks, not for the Docker images contained within. It is required for
+# running repository scripts and maintenance tasks, such as generating
+# Dockerfiles, linting, testing, and other scripts that help ensure code
+# quality.
+diff-cover==9.2.4
+Jinja2==3.1.6
+MarkupSafe==3.0.2
+nodeenv==1.9.1
+pip==25.3
+pydocstyle==6.3.0
+pyright==1.1.360
+psycopg2-binary==2.9.10
+pytest==8.4.1
+pytest-asyncio==0.25.0
+pytest-cov==6.2.1
+pytest-mock==3.14.1
+ruff==0.12.1
+setuptools==80.9.0
+snowballstemmer==3.0.1
+wheel==0.46.2

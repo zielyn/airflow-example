@@ -1,0 +1,226 @@
+## aws-mwaa-docker-images
+
+## Overview
+
+This repository contains the Docker Images that [Amazon
+MWAA](https://aws.amazon.com/managed-workflows-for-apache-airflow/) uses to run Airflow.
+
+You can also use it locally if you want to run a MWAA-like environment for testing, experimentation,
+and development purposes.
+
+Currently, Airflow v2.9.2 and above are supported. Future versions in parity with Amazon MWAA will be added as
+well. _Notice, however, that we do not plan to support previous Airflow versions supported by MWAA._
+
+## Using the Airflow Image
+
+### Linux / macOS
+
+To experiment with the image using a vanilla Docker setup, follow these steps:
+
+0. _(Prerequisites)_ Ensure you have:
+   - Python 3.11 or later.
+   - [Docker](https://docs.docker.com/desktop/) and [Docker Compose](https://docs.docker.com/compose/install/)
+1. Clone this repository.
+2. This repository makes use of Python virtual environments. To create them, from the root of the
+   package, execute the following command:
+
+```
+# Create venvs for all Airflow versions
+python3 create_venvs.py --target <development | production>
+
+# Or create venv for a specific version only
+python3 create_venvs.py --target <development | production> --version 3.0.6
+```
+
+3. Build and run a supported Airflow version Docker image:
+   - `cd <amazon-mwaa-docker-images path>/images/airflow/2.9.2`
+   - `./run.sh`
+
+   By default this runs fully locally (no AWS account needed): it builds the images, starts the containers, and writes logs inside the container at `/usr/local/airflow/logs/`. The web server is at `http://localhost:8080`.
+
+   To publish logs to CloudWatch instead, set `ACCOUNT_ID`, `ENV_NAME`, and real AWS credentials in `run.sh`. `./run.sh` then creates and writes to these log groups (your credentials need permission to do so):
+     - `{ENV_NAME}-DAGProcessing`
+     - `{ENV_NAME}-Scheduler`
+     - `{ENV_NAME}-Worker`
+     - `{ENV_NAME}-Task`
+     - `{ENV_NAME}-WebServer`
+
+   The credentials you provide are also used by the Airflow components at runtime, so if you hit permission errors, grant the needed permissions to that identity.
+
+---
+
+### Windows (PowerShell 5.1) [Not supported by AWS MWAA Service Team]
+
+#### Prerequisites
+
+- Windows 10/11 with PowerShell 5.1 (built-in — no installation needed)
+- Python 3.11 or later — install from [python.org](https://www.python.org/downloads/) (check "Add Python to PATH" during install)
+- [Docker Desktop for Windows](https://docs.docker.com/desktop/install/windows-install/) set to **Linux containers** mode
+  - Right-click the Docker Desktop tray icon → "Switch to Linux containers" if needed
+- AWS CLI (optional — only required if you want CloudWatch log group creation)
+
+#### One-time setup
+
+1. Clone this repository.
+
+2. Allow PowerShell to run local scripts (run once as your user):
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+3. Create the Python virtual environments from the repo root:
+```powershell
+# Create venvs for all Airflow versions
+python create_venvs.py --target development
+
+# Or for a specific version only
+python create_venvs.py --target development --version <version>
+```
+
+#### Running
+
+4. Navigate to an Airflow version directory and run:
+```powershell
+cd images\airflow\<version>
+.\run.ps1
+```
+
+This will build the Docker images and start the full Airflow stack. On first run, the image build can take 10–20 minutes.
+
+- To test a `requirements.txt` without running Airflow:
+```powershell
+.\run.ps1 -Command test-requirements
+```
+- To test a `startup.sh` without running Airflow:
+```powershell
+.\run.ps1 -Command test-startup-script
+```
+
+#### AWS Credentials
+
+For local development without a real AWS account, `run.ps1` defaults to dummy values — ElasticMQ (the local SQS mock) does not validate credentials. To use real AWS services (e.g. CloudWatch logging), update the `$AccountId`, `$EnvName`, and `$env:AWS_*` values at the top of `run.ps1`.
+
+#### Logging in
+
+Once the stack is up, open `http://localhost:8080`. The default credentials are printed in the webserver container logs on startup.
+
+#### Adding DAGs
+
+Drop DAG files into `images\airflow\<version>\dags\`. They are live-mounted into the container — no restart needed. The scheduler picks them up within a minute or two.
+
+#### Stopping
+
+```powershell
+docker compose down
+```
+
+#### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `cannot be loaded because running scripts is disabled` | Run `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` |
+| `Docker is not in Linux containers mode` | Right-click Docker Desktop tray icon → Switch to Linux containers |
+| `python` not found | Install Python 3.11+ from python.org with "Add to PATH" checked |
+| `Unable to locate credentials` | Ensure `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are non-empty in `run.ps1` |
+| Login fails at `http://localhost:8080` | Check the webserver container logs for the credentials printed on startup |
+| DAG not appearing | Check the scheduler container logs or verify the file exists in the `dags\` folder |
+
+---
+
+### Authentication from version 3.0.1 onward
+For environments created using this repository starting with version 3.0.1, we default to using `SimpleAuthManager`, 
+which is also the default auth manager in Airflow 3.0.0+. By default, `SIMPLE_AUTH_MANAGER_ALL_ADMINS` is set to true, 
+which means no username/password is required, and all users will have admin access. You can specify users and roles 
+using the SIMPLE_AUTH_MANAGER_USERS environment variable in the format:
+```
+username:role[,username2:role2,...]
+```
+To enforce authentication with explicit user passwords and roles, set:
+
+```
+SIMPLE_AUTH_MANAGER_ALL_ADMINS=false
+```
+In this mode, a password will be automatically generated for each user and printed in the webserver logs as soon as 
+webserver starts.
+
+---
+
+### Generated Docker Images
+
+When you build the Docker images of a certain Airflow version, using either `build.sh` or `run.sh`
+(which automatically also calls `build.sh` for you), multiple Docker images will actually be
+generated. For example, for Airflow 2.9, you will notice the following images:
+
+| Repository                        | Tag                           |
+| --------------------------------- | ----------------------------- |
+| amazon-mwaa-docker-images/airflow | 2.9.2                         |
+| amazon-mwaa-docker-images/airflow | 2.9.2-dev                     |
+| amazon-mwaa-docker-images/airflow | 2.9.2-explorer                |
+| amazon-mwaa-docker-images/airflow | 2.9.2-explorer-dev            |
+| amazon-mwaa-docker-images/airflow | 2.9.2-explorer-privileged     |
+| amazon-mwaa-docker-images/airflow | 2.9.2-explorer-privileged-dev |
+
+Each of the postfixes added to the image tag represents a certain build type, as explained below:
+
+- `explorer`: The 'explorer' build type is almost identical to the default build type except that it
+  doesn't include an entrypoint, meaning that if you run this image locally, it will not actually
+  start Airflow. This is useful for debugging purposes to run the image and look around its content
+  without starting airflow. For example, you might want to explore the file system and see what is
+  available where.
+- `privileged`: Privileged images are the same as their non-privileged counterpart except that they
+  run as the `root` user instead. This gives the user of this Docker image
+  elevated permissions. This can be useful if the user wants to do some experiments as the root
+  user, e.g. installing DNF packages, creating new folders outside the airflow user folder, among
+  others.
+- `dev`: These images have extra packages installed for debugging purposes. For example, typically
+  you wouldn't want to install a text editor in a Docker image that you use for production. However,
+  during debugging, you might want to open some files and inspect their contents, make some changes,
+  etc. Thus, we install an editor in the dev images to aid with such use cases. Similarly, we
+  install tools like `wget` to make it possible for the user to fetch web pages. For a complete
+  listing of what is installed in `dev` images, see the `bootstrap-dev` folders.
+
+---
+
+## Extra commands
+
+#### Requirements
+
+For details on installing Python depedencies, and optionally bundling wheel files, see the [Managing Python dependencies in requirements.txt](https://docs.aws.amazon.com/mwaa/latest/userguide/best-practices-dependencies.html#best-practices-dependencies-different-ways) in the Amazon MWAA user guide.  
+
+- Add Python dependencies to `requirements/requirements.txt`
+- To test a `requirements.txt` without running Apache Airflow, run:
+```bash
+./run.sh test-requirements
+```
+
+#### Package requirements
+
+- To download all packages from your `requirements.txt` as wheel (`.whl`) and source distribution (`.tar.gz`) files and bundle them into a `plugins.zip` for offline installation on MWAA, run:
+```bash
+./run.sh package-requirements
+```
+- This produces two artifacts in the `requirements/` directory:
+  - `plugins.zip` — all downloaded packages bundled into a single ZIP.
+  - `packaged_requirements.txt` — your original requirements prefixed with `--no-index` and `--find-links` flags for offline installation.
+- Upload `plugins.zip` to your MWAA S3 bucket and use `packaged_requirements.txt` as your requirements file. For more details, see [Installing Python dependencies using wheel files](https://docs.aws.amazon.com/mwaa/latest/userguide/best-practices-dependencies.html#best-practices-dependencies-different-ways) in the Amazon MWAA user guide.
+
+#### Startup script
+
+- There is a folder in each airflow version called `startup_script`. Add your script there as `startup.sh`
+- If there is a need to run additional setup (e.g. install system libraries, setting up environment variables), please modify the `startup.sh` script.
+- To test a `startup.sh` without running Apache Airflow, run:
+```bash
+./run.sh  test-startup-script
+```
+
+#### Reset database
+
+- If you encountered [the following error](https://issues.apache.org/jira/browse/AIRFLOW-3678): `process fails with "dag_stats_table already exists"`, you'll need to reset your database. You just need to restart your container by exiting and rerunning the `run.sh` script
+
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+## License
+
+This project is licensed under the Apache-2.0 License.
