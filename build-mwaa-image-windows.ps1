@@ -48,7 +48,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
   throw 'docker is required in PATH.'
 }
 
-$AirflowVersion = Get-EnvVarFromFile -Key 'AIRFLOW_VERSION' -DefaultValue '3.0.6'
+$AirflowVersion = Get-EnvVarFromFile -Key 'AIRFLOW_VERSION' -DefaultValue '3.3.1'
 $MwaaImageRepository = Get-EnvVarFromFile -Key 'MWAA_IMAGE_REPOSITORY' -DefaultValue 'amazon-mwaa-docker-images/airflow'
 
 $ImageDir = Join-Path $RootDir "st/amazon-mwaa-docker-images/images/airflow/$AirflowVersion"
