@@ -1,5 +1,5 @@
 x-airflow-common: &airflow-common
-  image: ${MWAA_IMAGE_REPOSITORY:-amazon-mwaa-docker-images/airflow}:${MWAA_IMAGE_TAG:-3.0.6-dev}
+  image: ${MWAA_IMAGE_REPOSITORY:-amazon-mwaa-docker-images/airflow}:${MWAA_IMAGE_TAG:-3.3.1-dev}
   restart: always
   init: true
   env_file:

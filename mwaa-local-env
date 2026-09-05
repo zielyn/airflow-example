@@ -64,7 +64,7 @@ build_mwaa_image() {
   # shellcheck disable=SC1090
   source "$ENV_FILE"
 
-  local airflow_version="${AIRFLOW_VERSION:-3.0.6}"
+  local airflow_version="${AIRFLOW_VERSION:-3.3.1}"
   local image_dir="$ROOT_DIR/st/amazon-mwaa-docker-images/images/airflow/${airflow_version}"
   local repo="${MWAA_IMAGE_REPOSITORY:-amazon-mwaa-docker-images/airflow}"
 
