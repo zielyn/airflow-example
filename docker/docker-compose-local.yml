@@ -27,6 +27,7 @@ x-airflow-common: &airflow-common
     MWAA__SQS__QUEUE_URL: http://sqs:9324/000000000000/celery-queue
     MWAA__SQS__USE_SSL: "False"
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://webserver:8080/execution/
+    AIRFLOW__LOGGING__HOSTNAME_CALLABLE: socket.gethostname
   volumes:
     - ../dags:/usr/local/airflow/dags
     - ../plugins:/usr/local/airflow/plugins
